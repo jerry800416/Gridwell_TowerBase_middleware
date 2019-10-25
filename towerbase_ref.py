@@ -6,7 +6,7 @@
 #####################################################################
 # for DB
 # db_info = ()
-db_info = ()
+db_info = () 
 #DB_name
 weather = 'TowerBase_Weather'
 web = 'TowerBase_WEB'
