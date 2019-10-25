@@ -4,3 +4,4 @@ The middleware code for TowerBase EHV transmission line project. This code analy
 
 ### 2019.10.24 新增
 1.新增cwb&acc weather data 當備用資料<br>
+1.當感測器無值, 使用cwb data & accuweather data<br>
