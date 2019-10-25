@@ -5,8 +5,8 @@
 #                              original                      by 瑞昌 #
 #####################################################################
 # for DB
-# db_info = ('localhost','gridwell','gridwell123')
-db_info = ('211.23.162.130','gridwell','gridwell123')
+# db_info = ()
+db_info = ()
 #DB_name
 weather = 'TowerBase_Weather'
 web = 'TowerBase_WEB'
