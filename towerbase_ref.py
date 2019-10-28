@@ -22,7 +22,11 @@ tower_list = [
     {'tbname':'Tower_7','TowerID':34,'RouteID':1,'wd1_deflection':23,'wd2_deflection':113},
     {'tbname':'Tower_9','TowerID':95,'RouteID':2,'wd1_deflection':-23,'wd2_deflection':67},
     {'tbname':'Tower_10','TowerID':96,'RouteID':2,'wd1_deflection':-23,'wd2_deflection':67},
-    {'tbname':'Tower_11','TowerID':51,'RouteID':1,'wd1_deflection':60,'wd2_deflection':150}]
+    {'tbname':'Tower_11','TowerID':51,'RouteID':1,'wd1_deflection':60,'wd2_deflection':150},
+    {'tbname':'Tower_12','TowerID':56,'RouteID':3,'wd1_deflection':174,'wd2_deflection':84},
+    {'tbname':'Tower_13','TowerID':58,'RouteID':3,'wd1_deflection':69,'wd2_deflection':159},
+    {'tbname':'Tower_14','TowerID':57,'RouteID':3,'wd1_deflection':-7,'wd2_deflection':173},
+    {'tbname':'Tower_15','TowerID':55,'RouteID':3,'wd1_deflection':152,'wd2_deflection':62}]
 
 
 log_path = './log.txt'
