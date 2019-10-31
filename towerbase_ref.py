@@ -20,6 +20,7 @@ tower_list = [
     {'tbname':'Tower_3','TowerID':94,'RouteID':2,'wd1_deflection':45,'wd2_deflection':135},
     {'tbname':'Tower_4','TowerID':97,'RouteID':2,'wd1_deflection':-23,'wd2_deflection':67},
     {'tbname':'Tower_7','TowerID':34,'RouteID':1,'wd1_deflection':23,'wd2_deflection':113},
+    {'tbname':'Tower_8','TowerID':36,'RouteID':1,'wd1_deflection':0,'wd2_deflection':0},
     {'tbname':'Tower_9','TowerID':95,'RouteID':2,'wd1_deflection':-23,'wd2_deflection':67},
     {'tbname':'Tower_10','TowerID':96,'RouteID':2,'wd1_deflection':-23,'wd2_deflection':67},
     {'tbname':'Tower_11','TowerID':51,'RouteID':1,'wd1_deflection':60,'wd2_deflection':150},
