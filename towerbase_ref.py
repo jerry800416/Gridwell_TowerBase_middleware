@@ -30,7 +30,7 @@ tower_list = [
     {'tbname':'Tower_15','TowerID':55,'RouteID':3,'wd1_deflection':152,'wd2_deflection':62}]
 
 #35
-# {'tbname':'Tower_5','TowerID':35,'RouteID':1,'wd1_deflection':?,'wd2_deflection':?}
+# {'tbname':'Tower_5','TowerID':35,'RouteID':1,'wd1_deflection':-126,'wd2_deflection':54}
 # 50
 # {'tbname':'Tower_6','TowerID':50,'RouteID':1,'wd1_deflection':255,'wd2_deflection':165}
 
