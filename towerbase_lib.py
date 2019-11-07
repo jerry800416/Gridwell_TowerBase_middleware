@@ -82,7 +82,7 @@ def check_newData(time):
                 elif m % 10 != 0 :
                     print('not avg10min data renew time')
                 else :
-                    weather(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i])
+                    weather(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
             elif ref.WSWD_list[i].split('_')[2] == 'avghour':
                 sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],hour_time)
@@ -90,7 +90,7 @@ def check_newData(time):
                 if result:
                     print('avghour data is new')
                 else :
-                    weather(time,'hour',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i])
+                    weather(time,'hour',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
             elif ref.WSWD_list[i].split('_')[2] == 'avgday':
                 sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],day_time)
@@ -98,7 +98,7 @@ def check_newData(time):
                 if result:
                     print('avgday data is new')
                 else :
-                    weather(time,'day',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i])
+                    weather(time,'day',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
             elif ref.WSWD_list[i].split('_')[2] == 'avgmonth':
                 sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],month_time)
@@ -106,7 +106,7 @@ def check_newData(time):
                 if result:
                     print('avgmonth data is new')
                 else :
-                    weather(time,'month',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i])
+                    weather(time,'month',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
         except Exception as e:
             go_to_log(ref.log_path,e)
@@ -191,7 +191,7 @@ def check_err_data(time,data_type,data_list):
 
 # WSWD 10min 1hr day month select
 def get_weather(dbname,tbname,sttime,edtime):
-    sql = "SELECT wind_speed_1,wind_speed_2,wind_direction_1,wind_direction_2,rainfall,Date FROM {} WHERE Date BETWEEN '{}' AND '{}'".format(tbname,sttime,edtime)
+    sql = "SELECT wind_speed_1,wind_speed_2,wind_direction_1,wind_direction_2,rainfall,Electricity,Date FROM {} WHERE Date BETWEEN '{}' AND '{}'".format(tbname,sttime,edtime)
     result = connect_DB(ref.db_info,dbname,sql,'select',0)
     return result
 
@@ -230,9 +230,19 @@ def post_rf(dbname,tbname,data):
     connect_DB(ref.db_info,dbname,sql,'insert',0)
 
 
+# nodeinfo data include residual_power RSSI package_accept_rate 
+def post_NI(dbname,tbname,data):
+    sql = "INSERT INTO {}(TowerID,RouteID,RSSI,residual_power,package_accept_rate,time) VALUES ".format(tbname)
+    for i in data:
+        sql_body = "({},{},{},{},{},'{}'),".format(i[0],i[1],i[2],i[3],i[4],i[5])
+        sql += sql_body
+    sql = sql[:-1]
+    connect_DB(ref.db_info,dbname,sql,'insert',0)
+
+
 # wswd && rainfall
 def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
-    list_ws1,list_ws2,list_rf,last_list_rf = [],[],[],[]
+    list_ws1,list_ws2,list_rf,last_list_rf,list_power = [],[],[],[],[]
     # 確認時間並拉取風速風向雨量資料
     if stamp == '10min':
         edtime = time.strftime("%Y-%m-%d %H:%M:00")
@@ -276,10 +286,11 @@ def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
                 list_ws1.append(i[0])
                 list_ws2.append(i[1])
                 list_rf.append(i[4])
+                list_power.append(i[5])
             wd1 = result[-1][2]
             wd2 = result[-1][3]
         else: #若時間範圍內沒有資料,則返回-1
-            list_ws1,list_ws2,list_rf,wd1,wd2 = -1,-1,-1,-1,-1
+            list_ws1,list_ws2,list_rf,list_power,wd1,wd2 = -1,-1,-1,[-1],-1,-1
         if stamp != '10min':
             last_result = get_weather(dbname,tbname,last_sttime,sttime)
             if len(last_result) > 0 :
@@ -288,7 +299,7 @@ def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
             else :
                 last_list_rf = -1
 
-    return list_ws1,list_ws2,list_rf,last_list_rf,wd1,wd2,edtime
+    return list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime
 
 
 def cal_wswd(list_ws1,list_ws2,wd1,wd2,wd1_deflection,wd2_deflection,stamp):
@@ -365,7 +376,10 @@ def cal_rf(list_rf,last_list_rf,time,RF,towerid,stamp):
         rf = accu_rf
     return rf
     
+
 def rf_deflection(list_rf):
+    '''
+    '''
     c = 0 
     d = 0 
     for i in list_rf:
@@ -377,14 +391,33 @@ def rf_deflection(list_rf):
     return accu_rf
 
 
-def weather(time,stamp,WSWD,RF):
-    wswd,rainfall = [],[]
+def cal_NI(power):
+    '''
+    計算電量
+    random RSSI
+    random 封包傳送率(PAR)
+    TODO: 接收RSSI 封包傳送率資料
+    '''
+    
+    if power not in [-1,None]:
+        power = int(power/13*100)
+    else :
+        power = random.randint(30,100)
+    RSSI = random.randint(10,20)
+    PAR = 100
+    return RSSI,power,PAR
+
+
+def weather(time,stamp,WSWD,RF,NI):
+    '''
+    '''
+    wswd,rainfall,nodedata = [],[],[]
 
     # 遍歷所有電塔
     for i in ref.tower_list:
         try:
             # 拉取風速風向雨量資料
-            list_ws1,list_ws2,list_rf,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
+            list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
 
             if RF != '0':
                 #計算雨量
@@ -395,6 +428,13 @@ def weather(time,stamp,WSWD,RF):
             ws1,ws2,wd1,wd2=cal_wswd(list_ws1,list_ws2,wd1,wd2,i['wd1_deflection'],i['wd2_deflection'],stamp)
             wswd.append([i['TowerID'],i['RouteID'],ws1,ws2,wd1,wd2,edtime])
             
+            # 計算電量
+            if NI != '0' :
+                power = list_power[-1]
+                RSSI,power,PAR = cal_NI(power)
+                nodedata.append([i['TowerID'],i['RouteID'],RSSI,power,PAR,edtime])
+
+
         except Exception as e:
             go_to_log(ref.log_path,i['TowerID']+':'+e)
     
@@ -403,6 +443,9 @@ def weather(time,stamp,WSWD,RF):
         rainfall = check_err_data(time,'rainfall',rainfall)
         # insert rainfall
         post_rf(ref.web,RF,rainfall)
+    if NI != '0':
+        post_NI(ref.web,NI,nodedata)
+
     # check -1 data ,catch cwb and acc data replace
     wswd = check_err_data(time,'wswd',wswd)
     # insert wswd
