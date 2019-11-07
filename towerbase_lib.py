@@ -400,7 +400,7 @@ def cal_NI(power):
     '''
     
     if power not in [-1,None]:
-        power = int(power/13*100)
+        power = int((power-10.9)*100/(14-10.9))
     else :
         power = random.randint(30,100)
     RSSI = random.randint(10,20)
