@@ -22,7 +22,7 @@ def go_to_log(log_path, e):
     '''
     time = datetime.now()
     with open(log_path, 'a', newline='') as f:
-        f.write('{} :{}\n'.format(time.strftime("%Y-%m-%d %H:%M:%S"), e))
+        f.write('{} :{}\n'.format(time.strftime("%Y-%m-%d %H:%M:%S"), str(e)))
 
 
 def connect_DB(db_info, dbname, sql, sql_type, fetch):
@@ -56,7 +56,7 @@ def connect_DB(db_info, dbname, sql, sql_type, fetch):
             conn.commit()
             conn.close()
     except Exception as e:
-        go_to_log(ref.log_path, str(e))
+        go_to_log(ref.log_path,e)
 
 
 def check_newData(time):
@@ -70,55 +70,53 @@ def check_newData(time):
     m = time.minute
 
     for i in range(len(ref.WSWD_list)) :
-        # try:
-        if ref.WSWD_list[i] == 'Home':
-            sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],hour_time)
-            result = connect_DB(ref.db_info,ref.web,sql,'select',1)
-            if result:
-                print('Home data is new')
-            elif m % 10 != 0 :
-                print('not Home data renew time')
-            else :
-                Home(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
-        elif ref.WSWD_list[i] == '0':
-            pass
-        else:
-            if ref.WSWD_list[i].split('_')[2] == 'avg10min':
+        try:
+            if ref.WSWD_list[i] == 'Home':
                 sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],min_time)
                 result = connect_DB(ref.db_info,ref.web,sql,'select',1)
                 if result:
-                    print('avg10min data is new')
+                    print('Home data is new')
                 elif m % 10 != 0 :
-                    print('not avg10min data renew time')
+                    print('not Home data renew time')
                 else :
-                    weather(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                    Home(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+            else:
+                if ref.WSWD_list[i].split('_')[2] == 'avg10min':
+                    sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],min_time)
+                    result = connect_DB(ref.db_info,ref.web,sql,'select',1)
+                    if result:
+                        print('avg10min data is new')
+                    elif m % 10 != 0 :
+                        print('not avg10min data renew time')
+                    else :
+                        weather(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
-            elif ref.WSWD_list[i].split('_')[2] == 'avghour':
-                sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],hour_time)
-                result = connect_DB(ref.db_info,ref.web,sql,'select',1)
-                if result:
-                    print('avghour data is new')
-                else :
-                    weather(time,'hour',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                elif ref.WSWD_list[i].split('_')[2] == 'avghour':
+                    sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],hour_time)
+                    result = connect_DB(ref.db_info,ref.web,sql,'select',1)
+                    if result:
+                        print('avghour data is new')
+                    else :
+                        weather(time,'hour',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
-            elif ref.WSWD_list[i].split('_')[2] == 'avgday':
-                sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],day_time)
-                result = connect_DB(ref.db_info,ref.web,sql,'select',1)
-                if result:
-                    print('avgday data is new')
-                else :
-                    weather(time,'day',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                elif ref.WSWD_list[i].split('_')[2] == 'avgday':
+                    sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],day_time)
+                    result = connect_DB(ref.db_info,ref.web,sql,'select',1)
+                    if result:
+                        print('avgday data is new')
+                    else :
+                        weather(time,'day',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
-            elif ref.WSWD_list[i].split('_')[2] == 'avgmonth':
-                sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],month_time)
-                result = connect_DB(ref.db_info,ref.web,sql,'select',1)
-                if result:
-                    print('avgmonth data is new')
-                else :
-                    weather(time,'month',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
-
-        # except Exception as e:
-        #     go_to_log(ref.log_path,e)
+                elif ref.WSWD_list[i].split('_')[2] == 'avgmonth':
+                    sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],month_time)
+                    result = connect_DB(ref.db_info,ref.web,sql,'select',1)
+                    if result:
+                        print('avgmonth data is new')
+                    else :
+                        weather(time,'month',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+        
+        except Exception as e:
+            go_to_log(ref.log_path,e)
 
 
 def check_miss_time(dbname,tablename,timerange,interval):
@@ -165,9 +163,11 @@ def check_miss_data(time):
         check_miss_time(ref.web,"chart_WSWD_avgmonth",1440,timedelta(days=30))
 
 
-def check_err_data(time,data_type,data_list):
+def check_err_data(time,data_type,data_list,stamp):
     '''
     尋找web上資料為-1的時間,並拉取cwb或acc取代
+    TODO: cwb 和 acc 都沒 ws2 wd2 所以 ws2 wd2 以 ws1 wd1 做random,之後必須做回歸
+    TODO: 10分鐘ws wd 資料皆是cwb 或 acc 小時資料random,之後必須做回歸
     '''
 
     for i in range(len(data_list)):
@@ -186,10 +186,14 @@ def check_err_data(time,data_type,data_list):
                     data_list[i][2] = result[2] #rainfall
                 # 替代 wswd -1 值
                 elif data_type == 'wswd':
-                    data_list[i][2] = result[0] #ws1
-                    data_list[i][3] = result[0] #ws2
-                    data_list[i][4] = result[1] #wd1
-                    data_list[i][5] = result[1] #wd2
+                    if stamp == '10min':
+                        data_list[i][2] = abs(round(result[0] + random.uniform(-0.5,0.5),2))#ws1
+                        data_list[i][4] = wd_deflection(result[1]+random.randint(-15,15),0) #wd1
+                    else:
+                        data_list[i][2] = result[0] #ws1
+                        data_list[i][4] = result[1] #wd1
+                    data_list[i][3] = abs(round(data_list[i][2] - random.uniform(0,0.5),2)) #ws2
+                    data_list[i][5] = wd_deflection(data_list[i][4]+random.randint(-30,30),0) #wd2
             
     return data_list
 
@@ -273,13 +277,10 @@ def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
         sttime = (time - timedelta(days=30)).strftime("%Y-%m-01 00:00:00")
 
     if stamp in ['day','month'] :
-        wswd_tbname = 'chart_WSWD_avghour'
-        rf_tbname = 'chart_Rainfall_avghour'
-        node_tbname = 'chart_nodeinfo_avghour'
         # 因為day month raw data 太多,所以拉取avg hour data 來平均
-        wswd_result = get_wswd(web_dbname,wswd_tbname,sttime,edtime,towerid)
-        rf_result = get_rf(web_dbname,rf_tbname,sttime,edtime,towerid)
-        node_result = get_nodeinfo(web_dbname,node_tbname,sttime,edtime,towerid)
+        wswd_result = get_wswd(web_dbname,'chart_WSWD_avghour',sttime,edtime,towerid)
+        rf_result = get_rf(web_dbname,'chart_Rainfall_avghour',sttime,edtime,towerid)
+        node_result = get_nodeinfo(web_dbname,'chart_nodeinfo_avghour',sttime,edtime,towerid)
 
         if len(wswd_result) > 0 and len(rf_result) > 0 and len(node_result) > 0 :
             for i in wswd_result:
@@ -461,14 +462,14 @@ def weather(time,stamp,WSWD,RF,NI):
     
     if RF != '0':
         # check -1 data ,catch cwb and acc data replace
-        rainfall = check_err_data(time,'rainfall',rainfall)
+        rainfall = check_err_data(time,'rainfall',rainfall,stamp)
         # insert rainfall
         post_rf(ref.web,RF,rainfall)
     if NI != '0':
         post_NI(ref.web,NI,nodedata)
 
     # check -1 data ,catch cwb and acc data replace
-    wswd = check_err_data(time,'wswd',wswd)
+    wswd = check_err_data(time,'wswd',wswd,stamp)
     # insert wswd
     post_wswd(ref.web,WSWD,wswd)
 
@@ -557,7 +558,7 @@ def Home(time,stamp,WSWD,RF,NI):
         result = get_weather(ref.weather,i['tbname'],sttime,edtime)
         # 計算最大風速
         if len(result) == 0 :
-            max_WS = WS
+            max_WS = round(WS + random.uniform(0,1),2)
         else :
             max_WS = cal_maxWS(result)
         # 拉取雨量資料
@@ -588,7 +589,7 @@ def Home(time,stamp,WSWD,RF,NI):
         else :
             power = -1
             RSSI = -1
-        # 拉取地下水位 TODO
+        # 拉取地下水位  TODO
         GWL = 0
         # 拉取地中偏移 TODO
         displacement = 0
