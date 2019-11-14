@@ -146,6 +146,7 @@ def check_miss_time(dbname,tablename,timerange,interval):
 
 def check_miss_data(time):
     '''
+    補傳程式
     '''
     hour_delta = [0,4,8,12,16]  #check hour
     min_delta = [30]  #check minute
@@ -537,6 +538,58 @@ def post_home(dbname,tbname,data):
     connect_DB(ref.db_info,dbname,sql,'insert',0)
 
 
+def alert_rating(data,type):
+    '''
+    警報程式分級
+    1:green 2:yellow 3:orange 4:red
+    WS:
+    43-49:2, 49-54:3, 54up:4
+    RAIN:
+    70-85/3hr:2, 85-100/3hr:3, 100/3hr up:4  
+    140-170/day:2, 170-200/day:3, 200/day up:4
+    560-680/M:2, 680-800/M:3, 800/M up:4
+    displacement:
+    2-10/M:2, 10/M up:3
+    5/day:4
+    '''
+    # 1:green 2:yellow 3:orange 4:red  #[[],[],[]]
+    result=4
+    if type == "WS":
+        datarange = [[0,43],[43,49],[49,54]]
+    elif type == "rain_3hr":
+        datarange = [[0,70],[70,85],[85,100]]
+    elif type == "rain_day":
+        datarange = [[0,140],[140,170],[170,200]]
+    elif type == "rain_month":
+        datarange = [[0,560],[560,680],[680,800]]
+    elif type == "displacement_month":
+        datarange = [[0,2],[2,10]]
+    elif type == "displacement_day":
+        datarange = [[0,5]]
+
+    for i in range(len(datarange)):
+        if datarange[i][0] <= data < datarange[i][1]:
+            result = i +1
+    return result
+
+
+def warning_light(tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,displacement_day):
+    '''
+    警報程式
+    '''
+    WS_result = alert_rating(WS,'WS')
+    rain_3hr_result = alert_rating(rain_3hr,'rain_3hr')
+    rain_day_result = alert_rating(rain_day,'rain_day')
+    rain_month_result = alert_rating(rain_month,'rain_month')
+    Rainfall_result = max(rain_3hr_result,rain_day_result,rain_month_result)
+    displacement_month_result = alert_rating(displacement_month,'displacement_month')
+    displacement_day_result = alert_rating(displacement_day,'displacement_day')
+    Displacement_result = max(displacement_month_result,displacement_day_result)
+    sql_light = "UPDATE Relation SET wind_status={},rainfall_status={},displacement_status={} WHERE tower_id = {}".format(WS_result,Rainfall_result,Displacement_result,tower_id)
+    connect_DB(ref.db_info,'TowerBase_Gridwell',sql_light,'update',1)
+
+
+
 def Home(time,stamp,WSWD,RF,NI):
     '''
     '''
@@ -594,6 +647,8 @@ def Home(time,stamp,WSWD,RF,NI):
         # 拉取地中偏移 TODO
         displacement = 0
         home.append([i['TowerID'],i['RouteID'],WS,gust_speed,max_WS,WD,hour_rf,three_hour_rf,day_rf,month_rf,displacement,GWL,RSSI,power,time.strftime("%Y-%m-%d %H:%M:00")])
+        # 警報程式 TODO 地中偏移
+        warning_light(i['TowerID'],WS,three_hour_rf,day_rf,month_rf,displacement,displacement)
     # insert to database (Home)
     post_home(ref.web,WSWD,home)
 
