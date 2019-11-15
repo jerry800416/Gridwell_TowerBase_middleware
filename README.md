@@ -2,9 +2,12 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
+### 2019.11.14 修正
+1. 修正 rssi範圍,單位改成dbm<br>
+
 ### 2019.11.14 新增
-1. 新增home <br>
-2. 修正RSSI power 日平均不做動問題<br>
+1. 新增 home <br>
+2. 修正 RSSI power 日平均不做動問題<br>
 3. 修正 home 最大風速若無值,取風速+random(0,1)<br>
 4. 修正 節點無10分鐘風速風向時,取備援資料(小時)做random<br>
 5. 修正 節點風速風向時,ws2 wd2 以 ws1 wd1 做random<br>
