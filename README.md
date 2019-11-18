@@ -4,6 +4,7 @@ The middleware code for TowerBase EHV transmission line project. This code analy
 
 ### 2019.11.18 修正
 1. 修正 home陣風判定<br>
+2. 修正 rssi範圍<br>
 
 ### 2019.11.14 修正
 1. 修正 rssi範圍,單位改成dbm<br>

@@ -428,7 +428,7 @@ def cal_NI(list_power,stamp):
             power = int((power-10.9)*100/(14-10.9))
         else :
             power = random.randint(30,100)
-        RSSI = random.randint(-93,-59)
+        RSSI = random.randint(-100,-80)
     PAR = 100
     return RSSI,power,PAR
 
