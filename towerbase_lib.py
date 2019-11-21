@@ -568,7 +568,7 @@ def alert_rating(data,type):
         datarange = [[0,5]]
     elif type == "power":
         result = 0
-        datarange = [[0,30]]
+        datarange = [[20,30],[10,20],[0,10]]
 
     for i in range(len(datarange)):
         if datarange[i][0] <= data < datarange[i][1]:
