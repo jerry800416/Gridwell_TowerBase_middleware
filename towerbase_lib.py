@@ -567,7 +567,7 @@ def alert_rating(data,type):
     elif type == "displacement_day":
         datarange = [[0,5]]
     elif type == "power":
-        result = 0
+        result = 1
         datarange = [[20,30],[10,20],[0,10]]
 
     for i in range(len(datarange)):
