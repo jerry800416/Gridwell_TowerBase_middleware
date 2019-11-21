@@ -553,7 +553,7 @@ def alert_rating(data,type):
     5/day:4
     '''
     # 1:green 2:yellow 3:orange 4:red  #[[],[],[]]
-    result=4
+    result = 4
     if type == "WS":
         datarange = [[0,43],[43,49],[49,54]]
     elif type == "rain_3hr":
@@ -566,6 +566,9 @@ def alert_rating(data,type):
         datarange = [[0,2],[2,10]]
     elif type == "displacement_day":
         datarange = [[0,5]]
+    elif type == "power":
+        result = 0
+        datarange = [[0,30]]
 
     for i in range(len(datarange)):
         if datarange[i][0] <= data < datarange[i][1]:
@@ -573,7 +576,7 @@ def alert_rating(data,type):
     return result
 
 
-def warning_light(tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,displacement_day):
+def warning_light(tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,displacement_day,power):
     '''
     警報程式
     '''
@@ -585,7 +588,8 @@ def warning_light(tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,di
     displacement_month_result = alert_rating(displacement_month,'displacement_month')
     displacement_day_result = alert_rating(displacement_day,'displacement_day')
     Displacement_result = max(displacement_month_result,displacement_day_result)
-    sql_light = "UPDATE Relation SET wind_status={},rainfall_status={},displacement_status={} WHERE tower_id = {}".format(WS_result,Rainfall_result,Displacement_result,tower_id)
+    power_result = alert_rating(power,'power')
+    sql_light = "UPDATE Relation SET wind_status={},rainfall_status={},displacement_status={},power_status={} WHERE tower_id = {}".format(WS_result,Rainfall_result,Displacement_result,power_result,tower_id)
     connect_DB(ref.db_info,'TowerBase_Gridwell',sql_light,'update',1)
 
 
@@ -648,7 +652,7 @@ def Home(time,stamp,WSWD,RF,NI):
         displacement = 0
         home.append([i['TowerID'],i['RouteID'],WS,gust_speed,max_WS,WD,hour_rf,three_hour_rf,day_rf,month_rf,displacement,GWL,RSSI,power,time.strftime("%Y-%m-%d %H:%M:00")])
         # 警報程式 TODO 地中偏移
-        warning_light(i['TowerID'],WS,three_hour_rf,day_rf,month_rf,displacement,displacement)
+        warning_light(i['TowerID'],WS,three_hour_rf,day_rf,month_rf,displacement,displacement,power)
     # insert to database (Home)
     post_home(ref.web,WSWD,home)
 

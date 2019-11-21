@@ -2,6 +2,9 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
+### 2019.11.21新增
+1. 新增警報程式檢查電量<br>
+
 ### 2019.11.18 修正
 1. 修正 home陣風判定<br>
 2. 修正 rssi範圍<br>
