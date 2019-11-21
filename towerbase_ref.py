@@ -5,7 +5,7 @@
 #                              original                      by 瑞昌 #
 #####################################################################
 # for DB
-# db_info = ()
+# db_info = () 
 db_info = () 
 #DB_name
 weather = 'TowerBase_Weather'
