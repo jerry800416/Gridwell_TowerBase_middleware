@@ -170,9 +170,12 @@ def check_err_data(time,data_type,data_list,stamp):
     TODO: cwb 和 acc 都沒 ws2 wd2 所以 ws2 wd2 以 ws1 wd1 做random,之後必須做回歸
     TODO: 10分鐘ws wd 資料皆是cwb 或 acc 小時資料random,之後必須做回歸
     '''
-
+    # TODO 須先check relation 有沒有必須手動更改為cwb 或是acc data的
+    sql = "SELECT tower_id FROM `Relation` WHERE node_life = 0 "
+    tower_list = connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'select',0)
+    tower_list = [i[0] for i in tower_list]
     for i in range(len(data_list)):
-        if -1 in data_list[i]:
+        if -1 in data_list[i] or data_list[i][0] in tower_list:
             # 取 cwb 資料
             sql = "SELECT WS,WD,rainfall,time FROM `#{}` WHERE time = '{}'".format(data_list[i][0],(time.strptime(data_list[i][-1],'%Y-%m-%d %H:%M:%S')-timedelta(hours=1)).strftime('%Y-%m-%d %H:00:00'))
             result = connect_DB(ref.db_info,'DTR_realtime_cwb',sql,'select',1)
@@ -414,6 +417,7 @@ def cal_NI(list_power,stamp):
     random RSSI
     random 封包傳送率(PAR)
     TODO: 接收RSSI 封包傳送率資料
+    TODO: power 若電量為-1或none或小於0則random
     '''
     
     if stamp == 'day':
@@ -424,7 +428,7 @@ def cal_NI(list_power,stamp):
         RSSI = int(sum(list_RSSI)/len(list_RSSI))
     else :
         power = list_power[-1]
-        if power not in [-1,None]:
+        if power not in [-1,None] and 100 >= power > 0:
             power = int((power-10.9)*100/(14-10.9))
         else :
             power = random.randint(30,100)
