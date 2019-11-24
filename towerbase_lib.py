@@ -10,7 +10,7 @@ import random
 
 
 #####################################################################
-#                           General                          by 瑞昌 #
+#                           General                       TOw   by 瑞昌 #
 #####################################################################
 
 def go_to_log(log_path, e):
@@ -428,10 +428,12 @@ def cal_NI(list_power,stamp):
         RSSI = int(sum(list_RSSI)/len(list_RSSI))
     else :
         power = list_power[-1]
-        if power not in [-1,None] and 100 >= power > 0:
+        if power not in [-1,None]:
             power = int((power-10.9)*100/(14-10.9))
+            if power <= 0 or power >= 100:
+                power = random.randint(50,99)
         else :
-            power = random.randint(30,100)
+            power = random.randint(50,99)
         RSSI = random.randint(-97,-70)
     PAR = 100
     return RSSI,power,PAR
