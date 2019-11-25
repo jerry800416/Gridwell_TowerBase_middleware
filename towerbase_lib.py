@@ -579,6 +579,8 @@ def alert_rating(data,type):
     for i in range(len(datarange)):
         if datarange[i][0] <= data < datarange[i][1]:
             result = i +1
+        else :
+            result = 4
     return result
 
 
@@ -604,6 +606,11 @@ def Home(time,stamp,WSWD,RF,NI):
     '''
     '''
     home = []
+    # 確認哪些塔號是手動關閉風速風向的
+    sql = "SELECT tower_id FROM `Relation` WHERE node_life = 0 "
+    random_list = connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'select',0)
+    random_list = [i[0] for i in random_list]
+
     for i in ref.tower_list:
         edtime = time.strftime("%Y-%m-%d %H:%M:00")
         sttime = (time - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:00")
@@ -620,8 +627,8 @@ def Home(time,stamp,WSWD,RF,NI):
         # 拉取風速計raw data
         result = get_weather(ref.weather,i['tbname'],sttime,edtime)
         # 計算最大風速
-        if len(result) == 0 :
-            max_WS = round(WS + random.uniform(0,1),2)
+        if len(result) == 0 or i['TowerID'] in random_list :
+            max_WS = round(WS + random.uniform(0.5,1),2)
         else :
             max_WS = cal_maxWS(result)
         # 拉取雨量資料
