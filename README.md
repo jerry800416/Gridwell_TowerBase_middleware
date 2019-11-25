@@ -2,11 +2,15 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
-### 2019.11.22新增
+### 2019.11.25 修正
+1. 修正電量警告小於10％不正常顯示問題<br>
+2. 修正手動關閉接收節點資料時最大風速不正常顯示問題<br>
+
+### 2019.11.22 新增
 1. 新增電量檢查,若節點回傳負值或大於100則random<br>
 2. 新增資料庫Relation可以強制設定個別節點不接收節點資料,改cwb或是acc<br>
 
-### 2019.11.21新增
+### 2019.11.21 新增
 1. 新增警報程式檢查電量<br>
 
 ### 2019.11.18 修正
