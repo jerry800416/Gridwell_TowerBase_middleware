@@ -10,7 +10,7 @@ import random
 
 
 #####################################################################
-#                           General                       TOw   by 瑞昌 #
+#                           General                          by 瑞昌 #
 #####################################################################
 
 def go_to_log(log_path, e):
@@ -275,7 +275,7 @@ def update_gatway_status(alive,dead):
         sql = sql[:-4]
         connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'update',0)
 
-update_gatway_status([1,3,5,7,9],[2,4,6,8,10])
+
 # wswd && rainfall && nodedata
 def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
     list_ws1,list_ws2,list_rf,last_list_rf,list_power = [],[],[],[],[]
@@ -427,9 +427,6 @@ def rf_deflection(list_rf):
 
     return accu_rf
 
-def NI_deflection():
-    pass
-
 
 def cal_NI(list_power,stamp):
     '''
@@ -471,7 +468,7 @@ def weather(time,stamp,WSWD,RF,NI):
             list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
 
             #  確認哪些閘道器是死掉的
-            if (list_ws1 != -1) or (list_ws2 != -1) :
+            if (list_ws1 != -1) and (list_ws2 != -1) :
                 alive.append(i['TowerID'])
             else :
                 dead.append(i['TowerID'])
@@ -493,6 +490,9 @@ def weather(time,stamp,WSWD,RF,NI):
         except Exception as e:
             go_to_log(ref.log_path,'{}:{}'.format(i['TowerID'],e))
     
+    # 上傳閘道器狀態
+    update_gatway_status(alive,dead)
+
     if RF != '0':
         # check -1 data ,catch cwb and acc data replace
         rainfall = check_err_data(time,'rainfall',rainfall,stamp)
@@ -501,8 +501,6 @@ def weather(time,stamp,WSWD,RF,NI):
     if NI != '0':
         post_NI(ref.web,NI,nodedata)
 
-    # 上傳閘道器狀態
-    update_gatway_status(alive,dead)
     # check -1 data ,catch cwb and acc data replace
     wswd = check_err_data(time,'wswd',wswd,stamp)
     # insert wswd
