@@ -2,6 +2,9 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
+### 2019.12.04 新增
+1. 在relation新增閘道器狀態顯示<br>
+
 ### 2019.11.25 修正
 1. 修正電量警告小於10％不正常顯示問題<br>
 2. 修正手動關閉接收節點資料時最大風速不正常顯示問題<br>

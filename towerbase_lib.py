@@ -166,7 +166,7 @@ def check_miss_data(time):
 
 def check_err_data(time,data_type,data_list,stamp):
     '''
-    尋找web上資料為-1的時間,並拉取cwb或acc取代
+    尋找web上nodestatus資料為-1的時間,並拉取cwb或acc取代
     TODO: cwb 和 acc 都沒 ws2 wd2 所以 ws2 wd2 以 ws1 wd1 做random,之後必須做回歸
     TODO: 10分鐘ws wd 資料皆是cwb 或 acc 小時資料random,之後必須做回歸
     '''
@@ -259,6 +259,23 @@ def post_NI(dbname,tbname,data):
     connect_DB(ref.db_info,dbname,sql,'insert',0)
 
 
+def update_gatway_status(alive,dead):
+    '''
+    更新gatway data 以確認哪些閘道器是有傳回資料的
+    '''
+    data = [alive,dead]
+    for item in range(2):
+        if item == 0:
+            sql = "UPDATE Relation SET gateway_status= 1 WHERE "
+        else :
+            sql = "UPDATE Relation SET gateway_status= 0 WHERE "
+        for i in data[item]:
+            sql_body = "tower_id ={} OR ".format(i)
+            sql += sql_body
+        sql = sql[:-4]
+        connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'update',0)
+
+update_gatway_status([1,3,5,7,9],[2,4,6,8,10])
 # wswd && rainfall && nodedata
 def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
     list_ws1,list_ws2,list_rf,last_list_rf,list_power = [],[],[],[],[]
@@ -410,6 +427,9 @@ def rf_deflection(list_rf):
 
     return accu_rf
 
+def NI_deflection():
+    pass
+
 
 def cal_NI(list_power,stamp):
     '''
@@ -418,6 +438,7 @@ def cal_NI(list_power,stamp):
     random 封包傳送率(PAR)
     TODO: 接收RSSI 封包傳送率資料
     TODO: power 若電量為-1或none或小於0則random
+    TODO: power random 必須依照耗電規律以及充電規律 早上:8~18 充電 晚上18~8放電 耗電規律比照最近期耗電％數 充電規律比照最近期充電％數 並確認是否有下雨,若下雨則一律放電 並保證放電規律以及充電規律一律使電量不小於30％和100不大於％ 
     '''
     
     if stamp == 'day':
@@ -431,9 +452,9 @@ def cal_NI(list_power,stamp):
         if power not in [-1,None]:
             power = int((power-10.9)*100/(14-10.9))
             if power <= 0 or power >= 100:
-                power = random.randint(50,99)
+                power = random.randint(50,99) # TODO
         else :
-            power = random.randint(50,99)
+            power = random.randint(50,99) #TODO 
         RSSI = random.randint(-97,-70)
     PAR = 100
     return RSSI,power,PAR
@@ -442,14 +463,19 @@ def cal_NI(list_power,stamp):
 def weather(time,stamp,WSWD,RF,NI):
     '''
     '''
-    wswd,rainfall,nodedata = [],[],[]
-
+    wswd,rainfall,nodedata,alive,dead = [],[],[],[],[]
     # 遍歷所有電塔
     for i in ref.tower_list:
         try:
             # 拉取風速風向雨量資料
             list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
 
+            #  確認哪些閘道器是死掉的
+            if (list_ws1 != -1) or (list_ws2 != -1) :
+                alive.append(i['TowerID'])
+            else :
+                dead.append(i['TowerID'])
+            
             if RF != '0':
                 #計算雨量
                 rf = cal_rf(list_rf,last_list_rf,time,RF,i['TowerID'],stamp)
@@ -475,6 +501,8 @@ def weather(time,stamp,WSWD,RF,NI):
     if NI != '0':
         post_NI(ref.web,NI,nodedata)
 
+    # 上傳閘道器狀態
+    update_gatway_status(alive,dead)
     # check -1 data ,catch cwb and acc data replace
     wswd = check_err_data(time,'wswd',wswd,stamp)
     # insert wswd
