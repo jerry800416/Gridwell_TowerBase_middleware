@@ -5,6 +5,7 @@ The middleware code for TowerBase EHV transmission line project. This code analy
 ### 2019.12.05 新增
 1. 新增電量random規則<br>
 2. 新增補傳資料會寫進log<br>
+3. 修正雨量取cwb 或 acc 時會加上random 避免鄰近塔資料相同<br>
 
 ### 2019.12.04 新增
 1. 在relation新增閘道器狀態顯示<br>

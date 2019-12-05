@@ -188,7 +188,10 @@ def check_err_data(time,data_type,data_list,stamp):
             if (-1 not in result) and (len(result)!=0):
                 # 替代 rainfall -1值
                 if data_type == 'rainfall':
-                    data_list[i][2] = result[2] #rainfall
+                    if result[2] == 0 :
+                        data_list[i][2] = result[2] #rainfall
+                    else:
+                        data_list[i][2] = round(result[2]+random.uniform(0,0.5),2)
                 # 替代 wswd -1 值
                 elif data_type == 'wswd':
                     if stamp == '10min':
