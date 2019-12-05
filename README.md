@@ -2,6 +2,10 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
+### 2019.12.05 新增
+1. 新增電量random規則<br>
+2. 新增補傳資料會寫進log<br>
+
 ### 2019.12.04 新增
 1. 在relation新增閘道器狀態顯示<br>
 

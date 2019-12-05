@@ -142,6 +142,7 @@ def check_miss_time(dbname,tablename,timerange,interval):
     if len(miss_list) != 0:
         for i in miss_list:
             check_newData(i)
+            go_to_log(ref.log_path,'補傳:{}'.format(i.strftime("%Y-%m-%d %H:00:00")))
 
 
 def check_miss_data(time):
@@ -155,13 +156,13 @@ def check_miss_data(time):
     #檢查開始,不檢查rainfall是因為rainfall資料是跟著wswd跑的,不須重複檢查
     if (check_hour in hour_delta) and (check_min in min_delta) :
         # 10min 往前檢查4小時資料
-        check_miss_time(ref.web,"chart_WSWD_avg10min",4,timedelta(minutes=10))
-        # hour 往前檢查12小時資料
-        check_miss_time(ref.web,"chart_WSWD_avghour",12,timedelta(hours=1))
+        check_miss_time(ref.web,"chart_WSWD_avg10min",5,timedelta(minutes=10))
+        # hour 往前檢查24小時資料
+        check_miss_time(ref.web,"chart_WSWD_avghour",25,timedelta(hours=1))
         # day 往前檢查兩天資料
-        check_miss_time(ref.web,"chart_WSWD_avgday",48,timedelta(days=1))
+        check_miss_time(ref.web,"chart_WSWD_avgday",49,timedelta(days=1))
         # month 往前檢查2個月資料
-        check_miss_time(ref.web,"chart_WSWD_avgmonth",1440,timedelta(days=30))
+        check_miss_time(ref.web,"chart_WSWD_avgmonth",1441,timedelta(days=30))
 
 
 def check_err_data(time,data_type,data_list,stamp):
@@ -227,6 +228,15 @@ def get_rf(dbname,tbname,sttime,edtime,towerid):
     sql = "SELECT rainfall FROM {} WHERE TowerID = {} AND (time BETWEEN '{}' AND '{}' AND rainfall != -1) ORDER BY time DESC".format(tbname,towerid,sttime,edtime)
     result = connect_DB(ref.db_info,dbname,sql,'select',0)
     return result
+
+
+# get last power from WEB db 
+def get_last_power(time,towerid):
+    # sttime = (time- timedelta(hours=1)).strftime("%Y-%m-%d %H:00:00")
+    edtime = (time.replace(minute=0,second=0)-timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+    sql = "SELECT residual_power FROM chart_nodeinfo_avghour WHERE (time < '{}') AND TowerID = {} AND (residual_power is not Null) AND (residual_power != -1) ORDER BY time DESC".format(edtime,towerid)
+    last_power = connect_DB(ref.db_info,'TowerBase_WEB',sql,'select',1)[0]
+    return last_power
 
 
 # WSWD 10min 1hr day month insert
@@ -428,14 +438,63 @@ def rf_deflection(list_rf):
     return accu_rf
 
 
-def cal_NI(list_power,stamp):
+def NI_deflection(time,dead,alive,nodedata):
+    '''
+    計算電量偏移(若沒有資料時)
+    power random 必須依照耗電規律以及充電規律 早上:8-18 充電 晚上18-8放電 耗電規律比照最近期耗電％數 充電規律比照最近期充電％數 並確認是否有下雨,若下雨則一律放電 並保證放電規律以及充電規律一律使電量不小於30％和不大於100％
+    '''
+    dict01 = {}
+    # 創建塔號:電量的dict
+    for i in nodedata:
+        dict01[i[0]] = i[3]
+    # 找出這小時電量與上一小時電量差距
+    for i in dead:
+        # 搜尋同條線路下哪些閘道器還活著
+        sql = "SELECT tower_id FROM Relation WHERE RouteID = (SELECT RouteID FROM Relation WHERE tower_id = {}) AND gateway_status = 1".format(i)
+        alive_node = connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'select',0)
+        if len(alive_node) == 0 : #表示閘道器沒有回傳資料
+            # 判斷是否為早上或晚上
+            if 8 < time.hour < 18:
+                sql = "SELECT rainfall FROM chart_Rainfall_avghour WHERE TowerID ={} ORDER BY time DESC LIMIT 1".format(i)
+                result = connect_DB(ref.db_info,'TowerBase_WEB',sql,'select',1)[0]
+                # 判斷是否下雨(下雨沒太陽)
+                if result > 0:
+                    dict01[i] = random.choice([0,-1,0,-1,0,0])
+                else:
+                    dict01[i] = random.choice([1,0,1,2,0,0])
+            else:
+                dict01[i] = random.choice([0,-1,0,-1,0,0])
+        else :  #表示閘道器有回傳資料
+            # 若有資料的塔號超過一個,以random後順訊拉值
+            if len(alive_node) > 1:
+                alive_node = list(alive_node)
+                random.shuffle(alive_node)
+            # 拉取上一小時time
+            for a in alive_node:
+                last_power = get_last_power(time,a[0])
+                if last_power not in [-1,None]:
+                    dict01[i] = dict01[a[0]] - last_power
+                    break
+                else :
+                    dict01[i] = 0
+    for i in nodedata:
+        if i[0] not in [b[0] for b in alive_node]:
+            i[3] += dict01[i[0]]
+            # random的資料將上去若小於30或是大於99以31和98計
+            if i[3] < 30 :
+                i[3] == 31
+            elif i[3] >99 :
+                i[3] = 98
+    return nodedata
+
+        
+def cal_NI(list_power,stamp,time,towerid):
     '''
     計算電量
     random RSSI
     random 封包傳送率(PAR)
     TODO: 接收RSSI 封包傳送率資料
     TODO: power 若電量為-1或none或小於0則random
-    TODO: power random 必須依照耗電規律以及充電規律 早上:8~18 充電 晚上18~8放電 耗電規律比照最近期耗電％數 充電規律比照最近期充電％數 並確認是否有下雨,若下雨則一律放電 並保證放電規律以及充電規律一律使電量不小於30％和100不大於％ 
     '''
     
     if stamp == 'day':
@@ -449,9 +508,9 @@ def cal_NI(list_power,stamp):
         if power not in [-1,None]:
             power = int((power-10.9)*100/(14-10.9))
             if power <= 0 or power >= 100:
-                power = random.randint(50,99) # TODO
+                power = get_last_power(time,towerid) # TODO
         else :
-            power = random.randint(50,99) #TODO 
+            power = get_last_power(time,towerid) #TODO 
         RSSI = random.randint(-97,-70)
     PAR = 100
     return RSSI,power,PAR
@@ -467,8 +526,8 @@ def weather(time,stamp,WSWD,RF,NI):
             # 拉取風速風向雨量資料
             list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
 
-            #  確認哪些閘道器是死掉的
-            if (list_ws1 != -1) and (list_ws2 != -1) :
+            #  確認哪些閘道器是死掉的並更新資料庫
+            if (list_ws1 != -1) and (list_ws2 != -1) and (list_power != -1) and (None not in list_power) :
                 alive.append(i['TowerID'])
             else :
                 dead.append(i['TowerID'])
@@ -484,7 +543,7 @@ def weather(time,stamp,WSWD,RF,NI):
             
             # 計算電量
             if NI != '0' :
-                RSSI,power,PAR = cal_NI(list_power,stamp)
+                RSSI,power,PAR = cal_NI(list_power,stamp,time,i['TowerID'])
                 nodedata.append([i['TowerID'],i['RouteID'],RSSI,power,PAR,edtime])
         
         except Exception as e:
@@ -499,6 +558,8 @@ def weather(time,stamp,WSWD,RF,NI):
         # insert rainfall
         post_rf(ref.web,RF,rainfall)
     if NI != '0':
+        if stamp == 'hour':
+            nodedata = NI_deflection(time,dead,alive,nodedata)
         post_NI(ref.web,NI,nodedata)
 
     # check -1 data ,catch cwb and acc data replace
