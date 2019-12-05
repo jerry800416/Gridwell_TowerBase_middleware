@@ -461,7 +461,7 @@ def NI_deflection(time,dead,alive,nodedata):
                 if result > 0:
                     dict01[i] = random.choice([0,-1,0,-1,0,0])
                 else:
-                    dict01[i] = random.choice([1,0,1,2,0,0])
+                    dict01[i] = random.choice([1,0,1,0,1,2])
             else:
                 dict01[i] = random.choice([0,-1,0,-1,0,0])
         else :  #表示閘道器有回傳資料
