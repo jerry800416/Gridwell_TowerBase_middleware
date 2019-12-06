@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime,timedelta
 import MySQLdb
+import MySQLdb.cursors
 import time
 import csv
 import os
@@ -25,7 +26,7 @@ def go_to_log(log_path, e):
         f.write('{} :{}\n'.format(time.strftime("%Y-%m-%d %H:%M:%S"), str(e)))
 
 
-def connect_DB(db_info, dbname, sql, sql_type, fetch):
+def connect_DB(db_info, dbname, sql, sql_type, fetch, **kwargs):
     '''
     資料庫操作\n
     db_info: secret\n
@@ -33,6 +34,7 @@ def connect_DB(db_info, dbname, sql, sql_type, fetch):
     sql: sql語法\n
     sql_type: chose select or insert\n
     fetch:fetch all or fetch one
+    返回dictionary
     '''
     try:
         conn = MySQLdb.connect(
@@ -41,6 +43,9 @@ def connect_DB(db_info, dbname, sql, sql_type, fetch):
             passwd=db_info[2],
             db=dbname)
         cur = conn.cursor()
+        for k, v in kwargs.items():
+            if k == "dictionary" and v == True:
+                cur = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
         cur.execute(sql)
         if sql_type == 'select':
             if fetch == 0:
@@ -68,7 +73,9 @@ def check_newData(time):
     day_time = time.strftime("%Y-%m-%d 00:00:00")
     month_time = time.strftime("%Y-%m-01 00:00:00")
     m = time.minute
-
+    # 拉取節點資料以及相對應表單
+    sql = "SELECT tbname,TowerID,RouteID,wd1_def,wd2_def FROM NodeInfo"
+    tower_list = connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'select',0,dictionary=True)
     for i in range(len(ref.WSWD_list)) :
         try:
             if ref.WSWD_list[i] == 'Home':
@@ -79,7 +86,7 @@ def check_newData(time):
                 elif m % 10 != 0 :
                     print('not Home data renew time')
                 else :
-                    Home(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                    Home(time,'10min',tower_list,WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i],)
             else:
                 if ref.WSWD_list[i].split('_')[2] == 'avg10min':
                     sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],min_time)
@@ -89,7 +96,7 @@ def check_newData(time):
                     elif m % 10 != 0 :
                         print('not avg10min data renew time')
                     else :
-                        weather(time,'10min',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                        weather(time,'10min',tower_list,WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
                 elif ref.WSWD_list[i].split('_')[2] == 'avghour':
                     sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],hour_time)
@@ -97,7 +104,7 @@ def check_newData(time):
                     if result:
                         print('avghour data is new')
                     else :
-                        weather(time,'hour',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                        weather(time,'hour',tower_list,WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
                 elif ref.WSWD_list[i].split('_')[2] == 'avgday':
                     sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],day_time)
@@ -105,7 +112,7 @@ def check_newData(time):
                     if result:
                         print('avgday data is new')
                     else :
-                        weather(time,'day',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                        weather(time,'day',tower_list,WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
 
                 elif ref.WSWD_list[i].split('_')[2] == 'avgmonth':
                     sql = "SELECT time FROM {} WHERE time = '{}' LIMIT 1".format(ref.WSWD_list[i],month_time)
@@ -113,7 +120,7 @@ def check_newData(time):
                     if result:
                         print('avgmonth data is new')
                     else :
-                        weather(time,'month',WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
+                        weather(time,'month',tower_list,WSWD = ref.WSWD_list[i],RF = ref.RF_list[i],NI = ref.NI_list[i])
         
         except Exception as e:
             go_to_log(ref.log_path,e)
@@ -519,12 +526,12 @@ def cal_NI(list_power,stamp,time,towerid):
     return RSSI,power,PAR
 
 
-def weather(time,stamp,WSWD,RF,NI):
+def weather(time,stamp,tower_list,WSWD,RF,NI):
     '''
     '''
     wswd,rainfall,nodedata,alive,dead = [],[],[],[],[]
     # 遍歷所有電塔
-    for i in ref.tower_list:
+    for i in tower_list:
         try:
             # 拉取風速風向雨量資料
             list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
@@ -690,7 +697,7 @@ def warning_light(tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,di
 
 
 
-def Home(time,stamp,WSWD,RF,NI):
+def Home(time,stamp,tower_list,WSWD,RF,NI):
     '''
     '''
     home = []
@@ -699,7 +706,7 @@ def Home(time,stamp,WSWD,RF,NI):
     random_list = connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'select',0)
     random_list = [i[0] for i in random_list]
 
-    for i in ref.tower_list:
+    for i in tower_list:
         edtime = time.strftime("%Y-%m-%d %H:%M:00")
         sttime = (time - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:00")
         # 拉取風速風向資料
