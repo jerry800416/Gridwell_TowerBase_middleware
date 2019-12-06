@@ -4,6 +4,7 @@ The middleware code for TowerBase EHV transmission line project. This code analy
 
 ### 2019.12.06 新增
 1. towerlist 新增進資料庫,不放在ref<br>
+2. 修正home頁面拉取ws資料拉到上小時問題<br>
 
 ### 2019.12.05 新增
 1. 新增電量random規則<br>

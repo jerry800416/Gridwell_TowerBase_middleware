@@ -74,7 +74,7 @@ def check_newData(time):
     month_time = time.strftime("%Y-%m-01 00:00:00")
     m = time.minute
     # 拉取節點資料以及相對應表單
-    sql = "SELECT tbname,TowerID,RouteID,wd1_def,wd2_def FROM NodeInfo"
+    sql = "SELECT tbname,TowerID,RouteID,wd1_deflection,wd2_deflection FROM NodeInfo"
     tower_list = connect_DB(ref.db_info,'TowerBase_Gridwell',sql,'select',0,dictionary=True)
     for i in range(len(ref.WSWD_list)) :
         try:
@@ -228,7 +228,7 @@ def get_weather(dbname,tbname,sttime,edtime):
 
 #get WSWD from WEB db
 def get_wswd(dbname,tbname,sttime,edtime,towerid):
-    sql = "SELECT WS,WS2,WD,WD2 FROM {} WHERE TowerID = {} AND (time BETWEEN '{}' AND '{}' ) AND WS != -1 AND WS2 !=-1 AND WD != -1 AND WD2 != -1".format(tbname,towerid,sttime,edtime)
+    sql = "SELECT WS,WS2,WD,WD2 FROM {} WHERE TowerID = {} AND (time < '{}' ) AND WS != -1 AND WS2 !=-1 AND WD != -1 AND WD2 != -1 ORDER BY time DESC LIMIT 1".format(tbname,towerid,edtime)
     result = connect_DB(ref.db_info,dbname,sql,'select',0)
     return result
 
