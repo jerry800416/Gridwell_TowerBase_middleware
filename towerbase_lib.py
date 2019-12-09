@@ -471,7 +471,7 @@ def NI_deflection(time,dead,alive,nodedata):
                 if result > 0:
                     dict01[i] = random.choice([0,-1,0,-1,0,0])
                 else:
-                    dict01[i] = random.choice([1,0,1,0,1,2])
+                    dict01[i] = random.choice([1,0,1,0,1,2,3])
             else:
                 dict01[i] = random.choice([0,-1,0,-1,0,0])
         else :  #表示閘道器有回傳資料
@@ -484,6 +484,10 @@ def NI_deflection(time,dead,alive,nodedata):
                 last_power = get_last_power(time,a[0])
                 if last_power not in [-1,None]:
                     dict01[i] = dict01[a[0]] - last_power
+                    if  dict01[i] > 3 :
+                        dict01[i] =  random.randint(0,3)
+                    elif dict01[i] < -2 :
+                        dict01[i] = random.randint(-2,0)
                     break
                 else :
                     dict01[i] = 0
@@ -492,8 +496,8 @@ def NI_deflection(time,dead,alive,nodedata):
             i[3] += dict01[i[0]]
             # random的資料將上去若小於30或是大於99以31和98計
             if i[3] < 30 :
-                i[3] == 31
-            elif i[3] >99 :
+                i[3] = 31
+            elif i[3] > 99 :
                 i[3] = 98
     return nodedata
 
@@ -516,7 +520,7 @@ def cal_NI(list_power,stamp,time,towerid):
     else :
         power = list_power[-1]
         if power not in [-1,None]:
-            power = int((power-10.9)*100/(14-10.9))
+            power = int((power-10.65)*100/(13.07-10.65))
             if power <= 0 or power >= 100:
                 power = get_last_power(time,towerid) # TODO
         else :
