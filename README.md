@@ -2,6 +2,9 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
+### 2020.05.18 修正
+1. 修正新版三值四級制<br>
+
 ### 2019.12.09 修正
 1. 修正電壓range為10.65-13.07(充控測量)<br>
 2. 修正電力random出現-1<br>

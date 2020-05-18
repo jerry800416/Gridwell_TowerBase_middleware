@@ -661,16 +661,18 @@ def alert_rating(data,type):
     '''
     # 1:green 2:yellow 3:orange 4:red  #[[],[],[]]
     result = 4
-    if type == "WS":
-        datarange = [[0,43],[43,49],[49,54]]
+    if type == "WS_W":
+        datarange = [[0,34],[34,39],[39,44]]
+    elif type == "WS_E":
+        datarange = [[0,46],[46,50],[50,54]]
     elif type == "rain_3hr":
-        datarange = [[0,70],[70,85],[85,100]]
+        datarange = [[0,65],[65,100],[100,200]]
     elif type == "rain_day":
-        datarange = [[0,140],[140,170],[170,200]]
+        datarange = [[0,130],[130,200],[200,350]]
     elif type == "rain_month":
-        datarange = [[0,560],[560,680],[680,800]]
+        datarange = [[0,520],[520,800],[800,1400]]
     elif type == "displacement_month":
-        datarange = [[0,2],[2,10]]
+        datarange = [[0,2],[2,10],[10,15]]
     elif type == "displacement_day":
         datarange = [[0,5]]
     elif type == "power":
@@ -683,11 +685,15 @@ def alert_rating(data,type):
     return result
 
 
-def warning_light(tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,displacement_day,power):
+def warning_light(route_id,tower_id,WS,rain_3hr,rain_day,rain_month,displacement_month,displacement_day,power):
     '''
     警報程式
     '''
-    WS_result = alert_rating(WS,'WS')
+    # 確認塔位於台灣東部還是西部
+    sql_WS = "SELECT `EorW` FROM `RouteInfo` WHERE `routeID` = {}".format(route_id)
+    result = connect_DB(ref.db_info,'TowerBase_Gridwell',sql_WS,'select',1)
+    
+    WS_result = alert_rating(WS,'WS_'+result[0])
     rain_3hr_result = alert_rating(rain_3hr,'rain_3hr')
     rain_day_result = alert_rating(rain_day,'rain_day')
     rain_month_result = alert_rating(rain_month,'rain_month')
@@ -718,7 +724,7 @@ def Home(time,stamp,tower_list,WSWD,RF,NI):
         WS = result[0][0]
         if WS == 0:
              WS = result[0][1]
-        WD = result[0][2] 
+        WD = result[0][2]
         if WD == 0:
             WD = result[0][3]
         # 計算陣風級數
@@ -764,7 +770,7 @@ def Home(time,stamp,tower_list,WSWD,RF,NI):
         displacement = 0
         home.append([i['TowerID'],i['RouteID'],WS,gust_speed,max_WS,WD,hour_rf,three_hour_rf,day_rf,month_rf,displacement,GWL,RSSI,power,time.strftime("%Y-%m-%d %H:%M:00")])
         # 警報程式 TODO 地中偏移
-        warning_light(i['TowerID'],WS,three_hour_rf,day_rf,month_rf,displacement,displacement,power)
+        warning_light(i['RouteID'],i['TowerID'],WS,three_hour_rf,day_rf,month_rf,displacement,displacement,power)
     # insert to database (Home)
     post_home(ref.web,WSWD,home)
 
