@@ -207,9 +207,10 @@ def check_err_data(time,data_type,data_list,stamp):
                     else:
                         data_list[i][2] = result[0] #ws1
                         data_list[i][4] = result[1] #wd1
+                        
+                    data_list[i][6] = round(data_list[i][2] + random.uniform(0.5,1),2)#max_ws
                     data_list[i][3] = abs(round(data_list[i][2] - random.uniform(0,0.5),2)) #ws2
-                    data_list[i][5] = wd_deflection(data_list[i][4]+random.randint(-30,30),0) #wd2
-            
+                    data_list[i][5] = round(wd_deflection(data_list[i][4]+random.randint(-30,30),0),2) #wd2
     return data_list
 
 
@@ -228,7 +229,7 @@ def get_weather(dbname,tbname,sttime,edtime):
 
 #get WSWD from WEB db
 def get_wswd(dbname,tbname,sttime,edtime,towerid):
-    sql = "SELECT WS,WS2,WD,WD2 FROM {} WHERE TowerID = {} AND (time < '{}' ) AND WS != -1 AND WS2 !=-1 AND WD != -1 AND WD2 != -1 ORDER BY time DESC LIMIT 1".format(tbname,towerid,edtime)
+    sql = "SELECT WS,WS2,WD,WD2,max_WS FROM {} WHERE TowerID = {} AND (time < '{}' ) AND WS != -1 AND WS2 !=-1 AND WD != -1 AND WD2 != -1 ORDER BY time DESC LIMIT 1".format(tbname,towerid,edtime)
     result = connect_DB(ref.db_info,dbname,sql,'select',0)
     return result
 
@@ -251,9 +252,9 @@ def get_last_power(time,towerid):
 
 # WSWD 10min 1hr day month insert
 def post_wswd(dbname,tbname,data):
-    sql = "INSERT INTO {}(TowerID,RouteID,WS,WS2,WD,WD2,time) VALUES ".format(tbname)
+    sql = "INSERT INTO {}(TowerID,RouteID,WS,WS2,WD,WD2,max_WS,time) VALUES ".format(tbname)
     for i in data:
-        sql_body = "({},{},{},{},{},{},'{}'),".format(i[0],i[1],i[2],i[3],i[4],i[5],i[6])
+        sql_body = "({},{},{},{},{},{},{},'{}'),".format(i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7])
         sql += sql_body
     sql = sql[:-1]
     connect_DB(ref.db_info,dbname,sql,'insert',0)
@@ -322,23 +323,26 @@ def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
         wswd_result = get_wswd(web_dbname,'chart_WSWD_avghour',sttime,edtime,towerid)
         rf_result = get_rf(web_dbname,'chart_Rainfall_avghour',sttime,edtime,towerid)
         node_result = get_nodeinfo(web_dbname,'chart_nodeinfo_avghour',sttime,edtime,towerid)
-
+        
         if len(wswd_result) > 0 and len(rf_result) > 0 and len(node_result) > 0 :
             for i in wswd_result:
                 list_ws1.append(i[0])
                 list_ws2.append(i[1])
+            maxWS = max(max(list_ws1),max(list_ws2))
             wd1 = wswd_result[-1][2]
             wd2 = wswd_result[-1][3]
             for i in rf_result:
                 list_rf.append(i[0])
             list_power = node_result
         else :
-            list_ws1,list_ws2,list_rf,wd1,wd2 = -1,-1,-1,-1,-1
+            list_ws1,list_ws2,list_rf,wd1,wd2,maxWS = -1,-1,-1,-1,-1,-1
             list_power = ((-1,-1),)
     else :
         result = get_weather(dbname,tbname,sttime,edtime)
-        
+
         if len(result) > 0:
+            maxWS = cal_maxWS(result)
+            print(maxWS)
             for i in result:
                 list_ws1.append(i[0])
                 list_ws2.append(i[1])
@@ -347,7 +351,7 @@ def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
             wd1 = result[-1][2]
             wd2 = result[-1][3]
         else: #若時間範圍內沒有資料,則返回-1
-            list_ws1,list_ws2,list_rf,list_power,wd1,wd2 = -1,-1,-1,[-1],-1,-1
+            list_ws1,list_ws2,list_rf,list_power,wd1,wd2,maxWS = -1,-1,-1,[-1],-1,-1,-1
         if stamp != '10min':
             last_result = get_weather(dbname,tbname,last_sttime,sttime)
             if len(last_result) > 0 :
@@ -355,8 +359,8 @@ def chart_weather(dbname,tbname,time,stamp,web_dbname,towerid):
                     last_list_rf.append(i[4])
             else :
                 last_list_rf = -1
-
-    return list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime
+    #  拉avg10min 的max_WS 來看最大風速
+    return list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,maxWS,edtime
 
 
 def cal_wswd(list_ws1,list_ws2,wd1,wd2,wd1_deflection,wd2_deflection,stamp):
@@ -538,7 +542,7 @@ def weather(time,stamp,tower_list,WSWD,RF,NI):
     for i in tower_list:
         try:
             # 拉取風速風向雨量資料
-            list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
+            list_ws1,list_ws2,list_rf,list_power,last_list_rf,wd1,wd2,maxWS,edtime = chart_weather(ref.weather,i['tbname'],time,stamp,ref.web,i['TowerID'])
 
             #  確認哪些閘道器是死掉的並更新資料庫
             if (list_ws1 != -1) and (list_ws2 != -1) and (list_power != -1) and (None not in list_power) :
@@ -553,7 +557,7 @@ def weather(time,stamp,tower_list,WSWD,RF,NI):
 
             # 計算風速風向
             ws1,ws2,wd1,wd2=cal_wswd(list_ws1,list_ws2,wd1,wd2,i['wd1_deflection'],i['wd2_deflection'],stamp)
-            wswd.append([i['TowerID'],i['RouteID'],ws1,ws2,wd1,wd2,edtime])
+            wswd.append([i['TowerID'],i['RouteID'],ws1,ws2,wd1,wd2,maxWS,edtime])
             
             # 計算電量
             if NI != '0' :
@@ -633,6 +637,7 @@ def get_nodeinfo(dbname,tbname,sttime,edtime,towerid,*args):
     result = connect_DB(ref.db_info,dbname,sql,'select',0)
     return result
 
+
 def post_home(dbname,tbname,data):
     '''
     insert to Home 
@@ -706,7 +711,6 @@ def warning_light(route_id,tower_id,WS,rain_3hr,rain_day,rain_month,displacement
     connect_DB(ref.db_info,'TowerBase_Gridwell',sql_light,'update',1)
 
 
-
 def Home(time,stamp,tower_list,WSWD,RF,NI):
     '''
     '''
@@ -717,7 +721,7 @@ def Home(time,stamp,tower_list,WSWD,RF,NI):
     random_list = [i[0] for i in random_list]
 
     for i in tower_list:
-        edtime = time.strftime("%Y-%m-%d %H:%M:00")
+        edtime = (time + timedelta(minutes=1)).strftime("%Y-%m-%d %H:%M:00")
         sttime = (time - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:00")
         # 拉取風速風向資料
         result = get_wswd(ref.web,'chart_WSWD_avg10min',sttime,edtime,i['TowerID'])
@@ -730,12 +734,14 @@ def Home(time,stamp,tower_list,WSWD,RF,NI):
         # 計算陣風級數
         gust_speed = cal_gust_speed(WS)
         # 拉取風速計raw data
-        result = get_weather(ref.weather,i['tbname'],sttime,edtime)
-        # 計算最大風速
-        if len(result) == 0 or i['TowerID'] in random_list :
-            max_WS = round(WS + random.uniform(0.5,1),2)
-        else :
-            max_WS = cal_maxWS(result)
+        max_WS = result[0][4]
+        # result = get_weather(ref.weather,i['tbname'],sttime,edtime)
+        # # 計算最大風速
+        # if len(result) == 0 or i['TowerID'] in random_list :
+        #     max_WS = round(WS + random.uniform(0.5,1),2)
+        # else :
+        #     max_WS = cal_maxWS(result)
+
         # 拉取雨量資料
         edtime = time.strftime("%Y-%m-%d %H:00:00")
         sttime = time.strftime("%Y-%m-%d 00:00:00")
@@ -774,7 +780,7 @@ def Home(time,stamp,tower_list,WSWD,RF,NI):
     # insert to database (Home)
     post_home(ref.web,WSWD,home)
 
-        
+
 
 
 

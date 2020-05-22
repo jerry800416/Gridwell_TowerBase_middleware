@@ -2,6 +2,9 @@
 The middleware code for TowerBase EHV transmission line project. This code analysis the raw data and put the result to the web.<br>
 <br><br>
 
+### 2020.05.22 新增
+1. 風速各資料表單新增最大風速欄位<br>
+
 ### 2020.05.18 修正
 1. 修正新版三值四級制<br>
 
